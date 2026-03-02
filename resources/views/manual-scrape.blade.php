@@ -40,6 +40,9 @@
                         <option value="5">5 Scrolls</option>
                         <option value="10">10 Scrolls</option>
                         <option value="20" selected>20 Scrolls</option>
+                        <option value="50">50 Scrolls</option>
+                        <option value="100">100 Scrolls</option>
+                        <option value="200">200 Scrolls</option>
                     </select>
                 </div>
                 <div class="md:col-span-1">
@@ -49,6 +52,11 @@
                         <option value="3">3</option>
                         <option value="5">5</option>
                         <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
                     </select>
                 </div>
                 <div class="md:col-span-1 flex items-end">
