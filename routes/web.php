@@ -17,4 +17,5 @@ Route::prefix('leads')->name('leads.')->group(function () {
     Route::get('/{lead}', [LeadController::class, 'show'])->name('show');
     Route::delete('/{lead}', [LeadController::class, 'destroy'])->name('destroy');
     Route::post('/{lead}/retry', [LeadController::class, 'retry'])->name('retry');
+    Route::post('/{lead}/sync', [LeadController::class, 'sync'])->name('sync');
 });

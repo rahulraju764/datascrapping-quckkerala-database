@@ -7,6 +7,8 @@ use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Illuminate\Support\Facades\Log;
 
+use App\Models\Lead;
+
 class ManualScrapeController extends Controller
 {
     public function index()
@@ -16,6 +18,7 @@ class ManualScrapeController extends Controller
 
     public function process(Request $request)
     {
+        set_time_limit(600); // Allow 10 minutes for this request
         $url = $request->input('url', 'https://www.quickerala.com/hotels-restaurants/ct-412');
         $maxScrolls = $request->input('maxScrolls', 10);
 
@@ -72,6 +75,27 @@ class ManualScrapeController extends Controller
                 'msg' => json_last_error_msg(),
                 'raw' => $output
             ], 500);
+        }
+
+        // Save to Database
+        foreach ($results as $item) {
+            if ($item['view_number'] === 'N/A') continue;
+
+            $phoneData = $item['phone_details'] ?? [];
+            
+            Lead::updateOrCreate(
+                ['view_number' => $item['view_number']],
+                [
+                    'address_id' => $item['address_id'] !== 'N/A' ? $item['address_id'] : null,
+                    'title' => $item['title'],
+                    'business_name' => $item['business_name_api'] ?? $item['title'],
+                    'mobile' => $item['phone'] !== 'N/A' ? (string)$item['phone'] : null,
+                    'mobile_formatted' => $item['phone'] !== 'N/A' ? (string)$item['phone'] : null,
+                    'whatsapp_enabled' => (bool)($item['whatsapp_api'] ?? false),
+                    'status' => ($item['phone'] !== 'N/A') ? 'fetched' : 'pending',
+                    'raw_response' => json_encode($item)
+                ]
+            );
         }
 
         return response()->json([

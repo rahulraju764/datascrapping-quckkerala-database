@@ -58,13 +58,59 @@ async function sleep(ms) {
             return data;
         });
 
-        console.log(`[LOG] Found ${extractedData.length} elements.`);
+        console.log(`[LOG] Found ${extractedData.length} elements. Fetching contact details...`);
+
+        // Second pass: Fetch phone numbers for each card from the dynamic link
+        for (let i = 0; i < extractedData.length; i++) {
+            const item = extractedData[i];
+            if (item.view_number !== 'N/A' && item.address_id !== 'N/A') {
+                try {
+                    if ((i + 1) % 10 === 0 || i === 0 || (i + 1) === extractedData.length) {
+                        console.log(`[LOG] Fetching contacts: ${i + 1}/${extractedData.length} items...`);
+                    }
+
+                    const phoneData = await page.evaluate(async (viewNo, addressId) => {
+                        try {
+                            const timestamp = Date.now();
+                            const url = `https://www.quickerala.com/business/${viewNo}/phone?addressId=${addressId}&_=${timestamp}`;
+                            const response = await fetch(url, {
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            });
+                            return await response.json();
+                        } catch (e) {
+                            return { error: e.message };
+                        }
+                    }, item.view_number, item.address_id);
+
+                    item.phone_details = phoneData;
+
+                    // Extract phone from the specific structure: data.mobile.value
+                    let extractedPhone = 'N/A';
+                    if (phoneData.data && phoneData.data.mobile) {
+                        extractedPhone = phoneData.data.mobile.value || phoneData.data.mobile.valueFormatted;
+                    } else {
+                        extractedPhone = phoneData.phone || phoneData.mobile || 'N/A';
+                    }
+
+                    item.phone = extractedPhone;
+                    item.business_name_api = phoneData.businessName || null;
+                    item.whatsapp_api = phoneData.whatsAppEnabled == "1";
+
+                    // Small delay to prevent rate limiting
+                    await sleep(800);
+                } catch (err) {
+                    console.log(`[LOG] Failed to fetch phone for ${item.view_number}: ${err.message}`);
+                    item.phone = 'Error';
+                }
+            } else {
+                item.phone = 'No ID';
+            }
+        }
 
         // Detailed logging of each element as requested
         extractedData.forEach(item => {
-            
-            console.log(`[ITEM_LOG] Element #${item.index}: ${item.title} | Location: ${item.location} | ViewID: ${item.view_number}`);
-            // console.log(`[HTML_LOG] ${item.full_html}`); // Verbose HTML log
+            const phoneStr = item.phone || 'N/A';
+            console.log(`[ITEM_LOG] Element #${item.index}: ${item.title} | Phone: ${phoneStr} | ViewID: ${item.view_number}`);
         });
 
         // Output final JSON for Laravel

@@ -125,7 +125,19 @@
                     body: JSON.stringify({ url, maxScrolls })
                 });
 
-                const data = await response.json();
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    appendLog('Server returned non-JSON response. This usually means a timeout or crash.', 'error');
+                    console.error('Raw response:', text);
+                    // Update Status
+                    statusText.innerText = 'Error';
+                    statusDot.classList.replace('bg-blue-500', 'bg-red-500');
+                    statusDot.classList.remove('animate-pulse');
+                    return;
+                }
 
                 if (data.success) {
                     appendLog('Scraper finished successfully!');
@@ -147,9 +159,10 @@
                                 <div class="space-y-1 overflow-hidden">
                                     <h3 class="font-bold text-slate-100 truncate">${item.title}</h3>
                                     <p class="text-xs text-slate-400">${item.location}</p>
-                                    <div class="flex gap-2 mt-1">
+                                    <div class="flex flex-wrap gap-2 mt-1">
                                         <span class="text-[10px] text-blue-400">ViewID: ${item.view_number}</span>
                                         <span class="text-[10px] text-slate-500">AddressID: ${item.address_id}</span>
+                                        <span class="text-[10px] text-emerald-400 font-bold bg-emerald-400/10 px-1 rounded">${item.phone || 'No Phone'}</span>
                                     </div>
                                 </div>
                             </div>

@@ -730,6 +730,9 @@
                                 </td>
                                 <td>
                                     <div class="actions">
+                                        <a href="{{ route('leads.show', $lead) }}" class="btn btn-outline btn-sm" style="color: var(--accent); border-color: var(--accent);">
+                                            👁
+                                        </a>
                                         @if($lead->status === 'failed')
                                             <form action="{{ route('leads.retry', $lead) }}" method="POST">
                                                 @csrf

@@ -117,14 +117,52 @@ class LeadController extends Controller
     }
 
     /**
-     * Retry fetching contact details for a failed lead.
+     * Sync lead details from Quickerala API.
      */
-    public function retry(Lead $lead)
+    public function sync(Lead $lead)
     {
-        $lead->update(['status' => 'pending']);
-        $this->scraper->processLead($lead);
+        $viewNumber = $lead->view_number;
+        $addressId = $lead->address_id;
+        $timestamp = now()->getTimestamp() . '000'; // JS-like timestamp
 
-        return redirect()->back()
-            ->with('success', "Retried lead: {$lead->title}");
+        $url = "https://www.quickerala.com/business/{$viewNumber}/phone?addressId={$addressId}&_={$timestamp}";
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'X-Requested-With' => 'XMLHttpRequest',
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+            ])->get($url);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                if (isset($data['status']) && $data['status'] === 'success') {
+                    // Extract phone
+                    $phone = null;
+                    if (isset($data['data']['mobile']['value'])) {
+                        $phone = $data['data']['mobile']['value'];
+                    }
+
+                    // Update Lead
+                    $lead->update([
+                        'business_name' => $data['businessName'] ?? $lead->business_name,
+                        'mobile' => $phone ?? $lead->mobile,
+                        'mobile_formatted' => $phone ?? $lead->mobile,
+                        'whatsapp_enabled' => ($data['whatsAppEnabled'] ?? "0") == "1",
+                        'status' => $phone ? 'fetched' : 'failed',
+                        'raw_response' => json_encode(array_merge(
+                            json_decode($lead->raw_response, true) ?? [],
+                            ['phone_details' => $data]
+                        ))
+                    ]);
+
+                    return redirect()->back()->with('success', 'Lead synced successfully from API.');
+                }
+            }
+            
+            return redirect()->back()->with('error', 'API returned an unsuccessful response.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to sync: ' . $e->getMessage());
+        }
     }
 }
