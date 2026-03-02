@@ -38,14 +38,23 @@
                     <select id="maxScrolls" class="w-full bg-slate-800 border-slate-700 text-white rounded-lg px-4 py-3 outline-none">
                         <option value="1">1 Scroll</option>
                         <option value="5">5 Scrolls</option>
-                        <option value="10" selected>10 Scrolls</option>
-                        <option value="20">20 Scrolls</option>
+                        <option value="10">10 Scrolls</option>
+                        <option value="20" selected>20 Scrolls</option>
                     </select>
                 </div>
-                <div class="md:col-span-2 flex items-end">
+                <div class="md:col-span-1">
+                    <label class="block text-sm font-medium text-slate-400 mb-2">Max Pages</label>
+                    <select id="maxPages" class="w-full bg-slate-800 border-slate-700 text-white rounded-lg px-2 py-3 outline-none">
+                        <option value="1" selected>1</option>
+                        <option value="3">3</option>
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                    </select>
+                </div>
+                <div class="md:col-span-1 flex items-end">
                     <button id="startScrape" 
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all shadow-lg hover:shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
-                        Run Scraper
+                        Go
                     </button>
                 </div>
             </div>
@@ -100,91 +109,104 @@
         }
 
         async function runScrape() {
-            const url = document.getElementById('targetUrl').value;
+            const baseUrl = document.getElementById('targetUrl').value;
             const maxScrolls = document.getElementById('maxScrolls').value;
+            const maxPages = parseInt(document.getElementById('maxPages').value);
 
             // UI Reset
             startBtn.disabled = true;
-            statusText.innerText = 'Scraping...';
+            statusText.innerText = 'Starting Batch...';
             statusDot.classList.replace('bg-slate-600', 'bg-blue-500');
             statusDot.classList.add('animate-pulse');
-            logConsole.innerHTML = '<div class="text-slate-500">> Initiating process...</div>';
-            resultsList.innerHTML = '<div class="text-slate-600 text-center py-20 italic">Processing page content via Puppeteer...</div>';
+            logConsole.innerHTML = '<div class="text-slate-500">> Initiating batch process...</div>';
+            resultsList.innerHTML = '';
             countBadge.innerText = '0 Found';
+            
+            let totalFound = 0;
 
-            appendLog(`Targeting: ${url}`);
-            appendLog(`Max Scrolls: ${maxScrolls}`);
-
-            try {
-                const response = await fetch('/manual-scrape/process', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ url, maxScrolls })
-                });
-
-                const text = await response.text();
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    appendLog('Server returned non-JSON response. This usually means a timeout or crash.', 'error');
-                    console.error('Raw response:', text);
-                    // Update Status
-                    statusText.innerText = 'Error';
-                    statusDot.classList.replace('bg-blue-500', 'bg-red-500');
-                    statusDot.classList.remove('animate-pulse');
-                    return;
+            for (let p = 1; p <= maxPages; p++) {
+                // Construct paginated URL
+                let currentUrl = baseUrl;
+                if (!currentUrl.includes('/p-')) {
+                    // Try to append /p-N. If ends in slash, remove it first.
+                    const cleanUrl = currentUrl.replace(/\/$/, '');
+                    currentUrl = `${cleanUrl}/p-${p}`;
+                } else {
+                    // If already has p-X, replace it
+                    currentUrl = currentUrl.replace(/\/p-\d+/, `/p-${p}`);
                 }
 
-                if (data.success) {
-                    appendLog('Scraper finished successfully!');
-                    appendLog(`Fetched ${data.count} items.`);
-                    
-                    // Update Status
-                    statusText.innerText = 'Completed';
-                    statusDot.classList.replace('bg-blue-500', 'bg-emerald-500');
-                    statusDot.classList.remove('animate-pulse');
-                    countBadge.innerText = `${data.count} Found`;
+                appendLog(`--- PROCESSING PAGE ${p} of ${maxPages} ---`);
+                appendLog(`URL: ${currentUrl}`);
+                statusText.innerText = `Scraping P${p}...`;
 
-                    // Populate Results
-                    resultsList.innerHTML = '';
-                    data.results.forEach(item => {
-                        const card = document.createElement('div');
-                        card.className = 'bg-slate-800/60 p-4 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-all cursor-pointer';
-                        card.innerHTML = `
-                            <div class="flex justify-between items-start gap-3">
-                                <div class="space-y-1 overflow-hidden">
-                                    <h3 class="font-bold text-slate-100 truncate">${item.title}</h3>
-                                    <p class="text-xs text-slate-400">${item.location}</p>
-                                    <div class="flex flex-wrap gap-2 mt-1">
-                                        <span class="text-[10px] text-blue-400">ViewID: ${item.view_number}</span>
-                                        <span class="text-[10px] text-slate-500">AddressID: ${item.address_id}</span>
-                                        <span class="text-[10px] text-emerald-400 font-bold bg-emerald-400/10 px-1 rounded">${item.phone || 'No Phone'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-3 flex gap-2 border-t border-slate-700/50 pt-3">
-                                <button onclick="viewHTML('${encodeURIComponent(item.full_html)}')" class="text-[10px] uppercase font-bold text-blue-400 hover:text-blue-300">View Full HTML</button>
-                                <a href="${item.link}" target="_blank" class="text-[10px] uppercase font-bold text-slate-400 hover:text-white">Visit Page</a>
-                            </div>
-                        `;
-                        resultsList.appendChild(card);
+                try {
+                    const response = await fetch('/manual-scrape/process', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ url: currentUrl, maxScrolls })
                     });
 
-                } else {
-                    appendLog(data.error || 'Unknown error occurred.', 'error');
-                    if(data.details) {
-                        appendLog(`<div class="mt-2 text-[10px] p-2 bg-red-500/10 rounded">${data.details}</div>`, 'error');
+                    const text = await response.text();
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        appendLog(`Page ${p} failed: Server error (Non-JSON).`, 'error');
+                        continue; // Try next page
                     }
+
+                    if (data.success) {
+                        appendLog(`Page ${p} complete: Found ${data.count} items.`);
+                        totalFound += data.count;
+                        countBadge.innerText = `${totalFound} Total Found`;
+
+                        // Add to UI results
+                        data.results.forEach(item => {
+                            const card = document.createElement('div');
+                            card.className = 'bg-slate-800/60 p-4 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-all cursor-pointer mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300';
+                            card.innerHTML = `
+                                <div class="flex justify-between items-start gap-3">
+                                    <div class="space-y-1 overflow-hidden">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[9px] bg-blue-500/20 text-blue-400 px-1 rounded">PAGE ${p}</span>
+                                            <h3 class="font-bold text-slate-100 truncate">${item.title}</h3>
+                                        </div>
+                                        <p class="text-xs text-slate-400">${item.location}</p>
+                                        <div class="flex flex-wrap gap-2 mt-1">
+                                            <span class="text-[10px] text-emerald-400 font-bold bg-emerald-400/10 px-1 rounded">${item.phone || 'No Phone'}</span>
+                                            <span class="text-[10px] text-blue-400">ViewID: ${item.view_number}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex gap-2 border-t border-slate-700/50 pt-3">
+                                    <a href="${item.link}" target="_blank" class="text-[10px] uppercase font-bold text-slate-400 hover:text-white">Visit Page</a>
+                                </div>
+                            `;
+                            resultsList.prepend(card);
+                        });
+                    } else {
+                        appendLog(`Page ${p} error: ${data.error || 'Unknown'}`, 'error');
+                    }
+                } catch (err) {
+                    appendLog(`Page ${p} connection error: ${err.message}`, 'error');
                 }
-            } catch (err) {
-                appendLog('Connection failed: ' + err.message, 'error');
-            } finally {
-                startBtn.disabled = false;
+                
+                // Small pause between pages
+                if (p < maxPages) {
+                    appendLog('Waiting 2 seconds before next page...', 'info');
+                    await new Promise(r => setTimeout(r, 2000));
+                }
             }
+
+            appendLog('--- BATCH PROCESS COMPLETED ---');
+            statusText.innerText = 'All Done';
+            statusDot.classList.replace('bg-blue-500', 'bg-emerald-500');
+            statusDot.classList.remove('animate-pulse');
+            startBtn.disabled = false;
         }
 
         window.viewHTML = (encodedHtml) => {
