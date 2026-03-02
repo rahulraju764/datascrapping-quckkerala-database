@@ -1,0 +1,11 @@
+{
+  "name": "quickerala-scraper",
+  "version": "1.0.0",
+  "description": "Puppeteer scraper for QuicKerala lead generation",
+  "scripts": {
+    "scrape": "node scraper/scraper.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.11.0"
+  }
+}
