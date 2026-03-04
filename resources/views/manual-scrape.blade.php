@@ -39,10 +39,7 @@
                         <option value="1">1 Scroll</option>
                         <option value="5">5 Scrolls</option>
                         <option value="10">10 Scrolls</option>
-                        <option value="20" selected>20 Scrolls</option>
-                        <option value="50">50 Scrolls</option>
-                        <option value="100">100 Scrolls</option>
-                        <option value="200">200 Scrolls</option>
+
                     </select>
                 </div>
                 <div class="md:col-span-1">
@@ -52,11 +49,6 @@
                         <option value="3">3</option>
                         <option value="5">5</option>
                         <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="30">30</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                        <option value="200">200</option>
                     </select>
                 </div>
                 <div class="md:col-span-1 flex items-end">
@@ -121,6 +113,18 @@
             const maxScrolls = document.getElementById('maxScrolls').value;
             const maxPages = parseInt(document.getElementById('maxPages').value);
 
+            // Detect starting page number from the URL
+            let startPage = 1;
+            const pSegmentMatch = baseUrl.match(/\/p-(\d+)/);
+            const pageParamMatch = baseUrl.match(/[?&]page=(\d+)/);
+            if (pSegmentMatch) {
+                startPage = parseInt(pSegmentMatch[1]);
+            } else if (pageParamMatch) {
+                startPage = parseInt(pageParamMatch[1]);
+            }
+
+            const endPage = startPage + maxPages - 1;
+
             // UI Reset
             startBtn.disabled = true;
             statusText.innerText = 'Starting Batch...';
@@ -130,9 +134,13 @@
             resultsList.innerHTML = '';
             countBadge.innerText = '0 Found';
             
-            let totalFound = 0;
+            appendLog(`Detected start page: ${startPage} | Will scrape pages ${startPage} to ${endPage} (${maxPages} pages)`);
 
-            for (let p = 1; p <= maxPages; p++) {
+            let totalFound = 0;
+            let pageIndex = 0;
+
+            for (let p = startPage; p <= endPage; p++) {
+                pageIndex++;
                 // Construct paginated URL
                 let currentUrl = baseUrl;
                 
@@ -154,9 +162,9 @@
                     }
                 }
 
-                appendLog(`--- PROCESSING PAGE ${p} of ${maxPages} ---`);
+                appendLog(`--- PROCESSING PAGE ${p} (${pageIndex} of ${maxPages}) ---`);
                 appendLog(`URL: ${currentUrl}`);
-                statusText.innerText = `Scraping P${p}...`;
+                statusText.innerText = `Scraping P${p} (${pageIndex}/${maxPages})...`;
 
                 try {
                     const response = await fetch('/manual-scrape/process', {
@@ -220,7 +228,7 @@
                 }
                 
                 // Small pause between pages
-                if (p < maxPages) {
+                if (p < endPage) {
                     appendLog('Waiting 2 seconds before next page...', 'info');
                     await new Promise(r => setTimeout(r, 2000));
                 }
