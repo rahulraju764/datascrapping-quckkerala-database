@@ -274,6 +274,26 @@
                 </div>
 
                 <div class="info-item">
+                    <div class="info-label">Category / Subcategories</div>
+                    <div class="info-value" style="font-size: 1rem; color: var(--accent);">
+                        {{ $lead->category ?? 'N/A' }}
+                    </div>
+                    @if($lead->subcategories)
+                        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem;">
+                            {{ $lead->subcategories }}
+                        </div>
+                    @endif
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label">Location (Locality & District)</div>
+                    <div class="info-value" style="font-size: 1rem;">
+                        {{ $lead->locality ?? 'N/A' }}, 
+                        <span style="color: var(--muted);">{{ $lead->district ?? 'N/A' }}</span>
+                    </div>
+                </div>
+
+                <div class="info-item">
                     <div class="info-label">Scrapped Date</div>
                     <div class="info-value">
                         {{ $lead->created_at->format('d M Y') }}

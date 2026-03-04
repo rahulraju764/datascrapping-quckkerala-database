@@ -135,13 +135,23 @@
             for (let p = 1; p <= maxPages; p++) {
                 // Construct paginated URL
                 let currentUrl = baseUrl;
-                if (!currentUrl.includes('/p-')) {
-                    // Try to append /p-N. If ends in slash, remove it first.
-                    const cleanUrl = currentUrl.replace(/\/$/, '');
-                    currentUrl = `${cleanUrl}/p-${p}`;
-                } else {
-                    // If already has p-X, replace it
+                
+                if (currentUrl.includes('page=')) {
+                    // Update existing page=N query param
+                    currentUrl = currentUrl.replace(/page=\d+/, `page=${p}`);
+                } else if (currentUrl.includes('/p-')) {
+                    // Update existing /p-N segment
                     currentUrl = currentUrl.replace(/\/p-\d+/, `/p-${p}`);
+                } else {
+                    // Append new pagination parameter
+                    if (currentUrl.includes('?')) {
+                        // URL has query params but no page=, append it
+                        currentUrl = `${currentUrl}&page=${p}`;
+                    } else {
+                        // URL has no query params, use the segment approach /p-N
+                        const cleanUrl = currentUrl.replace(/\/$/, '');
+                        currentUrl = `${cleanUrl}/p-${p}`;
+                    }
                 }
 
                 appendLog(`--- PROCESSING PAGE ${p} of ${maxPages} ---`);
@@ -183,10 +193,16 @@
                                             <span class="text-[9px] bg-blue-500/20 text-blue-400 px-1 rounded">PAGE ${p}</span>
                                             <h3 class="font-bold text-slate-100 truncate">${item.title}</h3>
                                         </div>
-                                        <p class="text-xs text-slate-400">${item.location}</p>
+                                        <div class="space-y-0.5">
+                                            <p class="text-[10px] text-blue-400 italic">${item.category || 'No Category'}</p>
+                                            <p class="text-[9px] text-slate-500 line-clamp-1">${item.subcategories || ''}</p>
+                                        </div>
+                                        <p class="text-xs text-slate-400 mt-1">${item.location}</p>
                                         <div class="flex flex-wrap gap-2 mt-1">
                                             <span class="text-[10px] text-emerald-400 font-bold bg-emerald-400/10 px-1 rounded">${item.phone || 'No Phone'}</span>
-                                            <span class="text-[10px] text-blue-400">ViewID: ${item.view_number}</span>
+                                            <span class="text-[10px] text-blue-400">ID: ${item.view_number}</span>
+                                            <span class="text-[10px] text-slate-400 bg-slate-700 px-1 rounded">${item.locality || 'N/A'}</span>
+                                            <span class="text-[10px] text-slate-100 bg-slate-600 px-1 rounded">${item.district || 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>

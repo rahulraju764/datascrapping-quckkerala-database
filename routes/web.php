@@ -10,7 +10,7 @@ Route::get('/', fn() => redirect()->route('leads.index'));
 Route::get('/manual-scrape', [ManualScrapeController::class, 'index'])->name('manual.index');
 Route::post('/manual-scrape/process', [ManualScrapeController::class, 'process'])->name('manual.process');
 
-Route::prefix('leads')->name('leads.')->group(function () {
+Route::name('leads.')->prefix('leads')->group(function () {
     Route::get('/', [LeadController::class, 'index'])->name('index');
     Route::post('/scrape', [LeadController::class, 'scrape'])->name('scrape');
     Route::get('/export', [LeadController::class, 'export'])->name('export');

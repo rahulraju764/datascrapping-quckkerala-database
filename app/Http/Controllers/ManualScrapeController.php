@@ -88,6 +88,10 @@ class ManualScrapeController extends Controller
                 [
                     'address_id' => $item['address_id'] !== 'N/A' ? $item['address_id'] : null,
                     'title' => $item['title'],
+                    'category' => $item['category'] !== 'N/A' ? $item['category'] : null,
+                    'subcategories' => $item['subcategories'] !== 'N/A' ? $item['subcategories'] : null,
+                    'district' => $item['district'] !== 'N/A' ? $item['district'] : null,
+                    'locality' => $item['locality'] !== 'N/A' ? $item['locality'] : null,
                     'business_name' => $item['business_name_api'] ?? $item['title'],
                     'mobile' => $item['phone'] !== 'N/A' ? (string)$item['phone'] : null,
                     'mobile_formatted' => $item['phone'] !== 'N/A' ? (string)$item['phone'] : null,

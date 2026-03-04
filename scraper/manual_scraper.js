@@ -44,6 +44,10 @@ async function sleep(ms) {
                     title: card.querySelector('.title')?.innerText?.trim() || 'N/A',
                     link: card.querySelector('a')?.href || 'N/A',
                     location: card.querySelector('.text-grey')?.innerText?.trim() || 'N/A',
+                    locality: (card.querySelector('.title')?.getAttribute('title') || '').split(',')[1]?.trim() || 'N/A',
+                    district: (card.querySelector('.title')?.getAttribute('title') || '').split(',')[2]?.trim() || 'N/A',
+                    category: Array.from(card.querySelectorAll('.bg-link')).map(el => el.innerText.trim()).filter(txt => txt && !txt.includes('in '))[0] || 'N/A',
+                    subcategories: Array.from(card.querySelectorAll('.bg-link')).map(el => el.innerText.trim()).filter(txt => txt && !txt.includes('in ')).slice(1).join(', ') || 'N/A',
                     // Robust attribute extraction: Check the card OR any child element
                     view_number: card.getAttribute('data-view-number') ||
                         card.querySelector('[data-view-number]')?.getAttribute('data-view-number') ||
